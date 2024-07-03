@@ -1453,50 +1453,6 @@ class Timer_Expiration(CAT_Templete):
 class Proactive_Command(RAPDU):
     def __init__(self, data: str | bytes):
         super().__init__(data)
-        self.cmd_type = None
-        self.cat_cmd_type_table = {
-            0x01: self.REFRESH,
-            0x02: self.MORE_TIME,
-            0x03: self.POLL_INTERVAL,
-            0x04: self.POLLING_OFF,
-            0x05: self.SET_UP_EVENT_LIST,
-            0x10: self.SET_UP_CALL,
-            0x11: self.SEND_SS,
-            0x12: self.SEND_USSD,
-            0x13: self.SEND_SHORT_MESSAGE,
-            0x14: self.SEND_DTMF,
-            0x15: self.LAUNCH_BROWSER,
-            0x20: self.PLAY_TONE,
-            0x21: self.DISPLAY_TEXT,
-            0x22: self.GET_INKEY,
-            0x23: self.GET_INPUT,
-            0x24: self.SELECT_ITEM,
-            0x25: self.SET_UP_MENU,
-            0x26: self.PROVIDE_LOCAL_INFORMATION,
-            0x27: self.TIMER_MANAGEMENT,
-            0x28: self.SET_UP_IDLE_MODE_TEXT,
-            0x30: self.PERFORM_CARD_APDU,
-            0x31: self.POWER_ON_CARD,
-            0x32: self.POWER_OFF_CARD,
-            0x33: self.GET_READER_STATUS,
-            0x34: self.RUN_AT_COMMAND,
-            0x35: self.LANGUAGE_NOTIFICATION,
-            0x40: self.OPEN_CHANNEL,
-            0x41: self.CLOSE_CHANNEL,
-            0x42: self.RECEIVE_DATA,
-            0x43: self.SEND_DATA,
-            0x44: self.GET_CHANNEL_STATUS,
-            0x45: self.SERVICE_SEARCH,
-            0x46: self.GET_SERVICE_INFORMATION,
-            0x47: self.DECLARE_SERVICE,
-            0x50: self.SET_FRAMES,
-            0x51: self.GET_FRAMES_STATUS,
-            0x60: self.RETRIEVE_MULTIMEDIA_MESSAGE,
-            0x61: self.SUBMIT_MULTIMEDIA_MESSAGE,
-            0x62: self.DISPLAY_MULTIMEDIA_MESSAGE,
-            0x81: self.End_of_the_proactive_session,
-        }
-
         if self.data[0] != 0xD0:
             # todo
             print("not proactive tag")
