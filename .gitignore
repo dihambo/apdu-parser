@@ -1,0 +1,6 @@
+apdu.json
+*/__pycache__
+*.pyc
+.vscode/
+temp*
+tests/apdu/__pycache__/
