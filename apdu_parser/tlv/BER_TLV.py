@@ -18,12 +18,9 @@ class BER_TLV(TLV):
         self.tag_class: int = None
         self.tag_constructed: bool = None
         self.tag_number: int = None
+        self.value_detail: list|dict = None
         self.parse_tag_header()
-        if self.tag_constructed:
-            try:
-                self.constructed_value = self.parse_constructed_value()
-            except Exception as e:
-                raise e
+
 
     @classmethod
     def from_bytes(cls, data: bytes | str):
@@ -220,17 +217,19 @@ class BER_TLV(TLV):
         if self.tag_number > 0x3FFF:
             raise InvalidTagError(self.tag, "tag number is greater than 0x3fff")
 
-    def parse_constructed_value(self):
+    def parse_constructed_value(self,TLV_type: type):
         if not self.tag_constructed:
-            return self.value.hex().upper()
-        else:
-            try:
-                tlv_list = TLV_Array.from_bytes(
-                    self.value, self.__class__
-                ).get_tlv_list()
-                return tlv_list
-            except Exception as e:
-                raise e
+            raise TLVError("tag is not constructed")
+        if not issubclass(TLV_type, TLV):
+            raise TLVError("TLV_type is not a subclass of TLV")
+        try:
+            tlv_list = TLV_Array.from_bytes(
+                self.value, TLV_type
+            ).get_tlv_list()
+            self.value_detail = tlv_list
+            return tlv_list
+        except Exception as e:
+            raise e
 
     def check_value_valid(self, value: bytes):
         # todo need tlv array be implemented
@@ -244,8 +243,3 @@ class BER_TLV(TLV):
 
     def get_length(self):
         return self.parse_length_filed(self.length)
-
-    def get_constructed_value(self):
-        if not self.tag_constructed:
-            raise TLVError("tag is not constructed")
-        return self.constructed_value

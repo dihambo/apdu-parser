@@ -231,10 +231,8 @@ def test_BER_TLV_array_wrong():
 
 
 def test_BER_TLV_nest():
-    tlv1 = BER_TLV.from_bytes(
-        bytes.fromhex("E2 10 5A 02 12 34 E1 0A 9F 1F 03 56 78 90 5B 02 12 34")
-    )
+    tlv1 = BER_TLV.from_bytes("E2 10 5A 02 12 34 E1 0A 9F 1F 03 56 78 90 5B 02 12 34")
     # tlv2 = BER_TLV.from_bytes(bytes.fromhex("E1 0A 5A 02 12 34 9F 1F 03 56 78 90"))
 
-    assert isinstance(tlv1.get_constructed_value(), list)
+    assert isinstance(tlv1.parse_constructed_value(BER_TLV), list)
     # todo 待完善
