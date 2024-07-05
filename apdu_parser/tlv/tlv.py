@@ -1,4 +1,7 @@
-class TLV:
+from abc import ABC, abstractmethod
+class TLV(ABC):
+    """最基本的TLV类。tag域和length域的编码会根据具体的TLV子类而有所不同。
+    """
     def __init__(
         self,
         tag_field: str | bytes,
@@ -9,46 +12,37 @@ class TLV:
         self.length: bytes = None
         self.value: bytes = None
         self.tlv_len: int = 0
-        self.bytes_arrary: bytes = None
+        self.bytes_array: bytes = None
 
-        if isinstance(tag_field, str):
-            tag_field = bytes.fromhex(tag_field)
-        if isinstance(len_field, str):
-            len_field = bytes.fromhex(len_field)
-        if value_field is not None and isinstance(value_field, str):
-            value_field = bytes.fromhex(value_field)
+        self.tag = self._convert_to_bytes(tag_field)
+        self.length = self._convert_to_bytes(len_field)
+        self.value = self._convert_to_bytes(value_field) if value_field is not None else b''
 
-        try:
-            self.check_tag_valid(tag_field)
-            self.check_length_valid(len_field)
+        self.check_validity()
 
-            self.tag = tag_field
-            self.length = len_field
+        self.tlv_len = len(self.tag) + len(self.length) + len(self.value)
+        self.bytes_array = self.tag + self.length + self.value
 
-            if value_field is not None:
-                self.check_value_valid(value_field)
-                self.value = value_field
+    def _convert_to_bytes(self, field: str | bytes) -> bytes:
+        return bytes.fromhex(field) if isinstance(field, str) else field
 
-            self.tlv_len = len(self.tag) + len(self.length) + len(self.value)
-            self.bytes_arrary = self.tag + self.length + self.value
-        except Exception as e:
-            raise e
+    def check_validity(self):
+        self.check_tag_valid(self.tag)
+        self.check_length_valid(self.length)
+        if self.value:
+            self.check_value_valid(self.value)
 
     @classmethod
+    @abstractmethod
     def from_bytes(cls, data: bytes | str):
-        raise NotImplementedError()
+        pass
 
     def to_dict(self):
-        tlv_dict = dict()
-        tlv_dict["tag"] = self.get_tag()
-        tlv_dict["length"] = self.get_length()
-        if self.value is not None:
-            if hasattr(self, "constructed_value"):
-                tlv_dict["constructed_value"] = [
-                    tlv.to_dict() for tlv in self.constructed_value
-                ]
-            else:
-                tlv_dict["value"] = self.get_value()
+        tlv_dict = {
+            "tag": self.get_tag(),
+            "length": self.get_length(),
+            "value": self.get_value() if self.value else ""
+        }
         return tlv_dict
 
     def get_tag(self):
@@ -61,15 +55,18 @@ class TLV:
         return self.value.hex().upper()
 
     @staticmethod
+    @abstractmethod
     def check_tag_valid(tag: bytes):
-        raise NotImplementedError()
+        pass
 
     @staticmethod
+    @abstractmethod
     def check_length_valid(length: bytes):
-        raise NotImplementedError()
+        pass
 
-    def check_value_valid(self):
-        raise NotImplementedError()
+    @abstractmethod
+    def check_value_valid(self, value: bytes):
+        pass
 
 
 class TLV_Array:
