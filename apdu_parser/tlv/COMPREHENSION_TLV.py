@@ -27,9 +27,9 @@ class COMPREHENSION_TLV(TLV):
         try:
             if len(data) < 2:
                 raise TLVError("data is too short: {data}")
-            tag = cls.__get_tag_from_bytes(data)
+            tag = cls.get_tag_field_from_bytes(data)
             tag_len = len(tag)
-            length_field = cls.__get_length_field_from_bytes(data[tag_len:])
+            length_field = cls.get_length_field_from_bytes(data[tag_len:])
             length_len = len(length_field)
             length = cls.parse_length_field(length_field)
             value = data[tag_len + length_len : tag_len + length_len + length]
@@ -38,7 +38,7 @@ class COMPREHENSION_TLV(TLV):
             raise e
 
     @staticmethod
-    def __get_tag_from_bytes(data: bytes | str) -> bytes:
+    def get_tag_field_from_bytes(data: bytes | str) -> bytes:
         if isinstance(data, str):
             data = bytes.fromhex(data)
 
@@ -55,6 +55,19 @@ class COMPREHENSION_TLV(TLV):
         return tag
 
     @staticmethod
+    def get_length_field_from_bytes(data: bytes) -> bytes:
+        if data[0] < 0x80:
+            return data[:1]
+        elif data[0] == 0x81:
+            return data[:2]
+        elif data[0] == 0x82:
+            return data[:3]
+        elif data[0] == 0x83:
+            return data[:4]
+        else:
+            raise InvalidLengthError(data[:1], "length field is invalid")
+            
+    @staticmethod
     def check_tag_valid(tag: bytes):
         if tag[0] == 0x00 or tag[0] == 0xFF or tag[0] == 0x80:
             raise InvalidTagError(tag, "tag's first bytes is 0x00 or 0xff")
@@ -66,19 +79,6 @@ class COMPREHENSION_TLV(TLV):
         else:
             if len(tag) != 1:
                 raise InvalidTagError(tag, "tag is one byte, but the length is not 1")
-
-    @staticmethod
-    def __get_length_field_from_bytes(data: bytes) -> bytes:
-        if data[0] < 0x80:
-            return data[:1]
-        elif data[0] == 0x81:
-            return data[:2]
-        elif data[0] == 0x82:
-            return data[:3]
-        elif data[0] == 0x83:
-            return data[:4]
-        else:
-            raise InvalidLengthError(data[:1], "length field is invalid")
 
     @staticmethod
     def check_length_valid(length_field: bytes):

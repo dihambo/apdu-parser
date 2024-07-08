@@ -5,8 +5,6 @@ from apdu_parser.tlv.tlv_error import (
     InvalidValueError,
     TLVError,
 )
-
-
 class BER_TLV(TLV):
     def __init__(
         self,
@@ -21,26 +19,8 @@ class BER_TLV(TLV):
         self.value_detail: list|dict = None
         self.parse_tag_header()
 
-
-    @classmethod
-    def from_bytes(cls, data: bytes | str):
-        if isinstance(data, str):
-            data = bytes.fromhex(data)
-        try:
-            if len(data) < 2:
-                raise TLVError("data is too short: {data}")
-            tag = cls.__get_tag_from_bytes(data)
-            tag_len = len(tag)
-            length_field = cls.get_length_field_from_bytes(data[tag_len:])
-            length_len = len(length_field)
-            length = cls.parse_length_filed(length_field)
-            value = data[tag_len + length_len : tag_len + length_len + length]
-            return cls(tag, length_field, value)
-        except Exception as e:
-            raise e
-
     @staticmethod
-    def __get_tag_from_bytes(data: bytes | str) -> bytes:
+    def parse_tag_field(data: bytes | str) -> bytes:
         """Return first tag field from the head of data. suppose the tag is not longer than 3 bytes.
 
         Args:

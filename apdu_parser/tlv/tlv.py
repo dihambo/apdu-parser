@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+from apdu_parser.tlv.tlv_error import (
+    TLVError,
+)
 class TLV(ABC):
     """最基本的TLV类。tag域和length域的编码会根据具体的TLV子类而有所不同。
     """
@@ -33,10 +36,23 @@ class TLV(ABC):
             self.check_value_valid(self.value)
 
     @classmethod
-    @abstractmethod
     def from_bytes(cls, data: bytes | str):
-        pass
+        if isinstance(data, str):
+            data = bytes.fromhex(data)
+        try:
+            if len(data)<2:
+                raise TLVError(f"data is too short: {data}")
+            tag_field = cls.get_tag_field_from_bytes(data)
+            tag_len = len(tag_field)
+            length_field = cls.get_length_field_from_bytes(data[tag_len:])
+            length_len = len(length_field)
+            length = cls.parse_length_field(length_field)
+            value = cls.get_value_field_from_bytes(data[tag_len + length_len:tag_len + length_len + length])
+            return cls(tag_field, length_field, value)
+        except Exception as e:
+            raise e
 
+    @abstractmethod
     def to_dict(self):
         tlv_dict = {
             "tag": self.get_tag(),
@@ -53,6 +69,30 @@ class TLV(ABC):
 
     def get_value(self):
         return self.value.hex().upper()
+    
+    @staticmethod
+    @abstractmethod
+    def get_tag_field_from_bytes(data: bytes) -> bytes:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_length_field_from_bytes(data: bytes) -> bytes:
+        pass
+
+    @abstractmethod
+    def get_value_field_from_bytes(self, data: bytes) -> bytes:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def parse_tag_field(data: bytes) -> bytes:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def parse_length_field(data: bytes) -> bytes:
+        pass
 
     @staticmethod
     @abstractmethod
