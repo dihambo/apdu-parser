@@ -70,7 +70,7 @@ class TLV(ABC):
 
 
 class TLV_Array:
-    def __init__(self, tlv_array: list) -> None:
+    def __init__(self, tlv_array: list[TLV]) -> None:
         self.tlv_list = tlv_array
 
     def get_tlv_list(self):
