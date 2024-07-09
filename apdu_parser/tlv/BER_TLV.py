@@ -14,26 +14,24 @@ class BER_TLV(TLV):
     ) -> None:
         super().__init__(tag_field, length_field, value_field)
         self.tag_class: int = None
-        self.tag_constructed: bool = None
+        self.tag_is_constructed: bool = None
         self.tag_number: int = None
         self.value_detail: list|dict = None
         self.parse_tag_header()
 
     @staticmethod
-    def parse_tag_field(data: bytes | str) -> bytes:
-        """Return first tag field from the head of data. suppose the tag is not longer than 3 bytes.
+    def get_tag_field_from_bytes(data: bytes | str) -> bytes:
+        """Return tag field from the head of data. suppose the tag is not longer than 3 bytes.
 
         Args:
-            data (bytes): bytes data to get tag
+            data (bytes | str): data to get tag field
 
         Raises:
-            InvalidTagError: _description_
-            InvalidTagError: _description_
-            InvalidTagError: _description_
+            InvalidTagError: tag is invalid
             e: _description_
 
         Returns:
-            byts: tag field
+            bytes: tag field
         """
         if isinstance(data, str):
             data = bytes.fromhex(data)
@@ -102,6 +100,44 @@ class BER_TLV(TLV):
                 raise InvalidTagError(tag, "tag is invalid")
         except InvalidTagError as e:
             raise e
+
+    @staticmethod
+    def parse_tag_field(data: bytes) -> dict:
+        """parse tag field to get tag class, tag is constructed or not, tag number
+
+        Args:
+            data (bytes): tag field
+
+        Raises:
+            e: _description_
+
+        Returns:
+            dict: tag class, tag is constructed or not, tag number
+        """
+        # check tag valid
+        try:
+            BER_TLV.check_tag_valid(data)
+            tag_class = {
+                0x00: "universal",
+                0x01: "application",
+                0x02: "context-specific",
+                0x03: "private",
+            }[(data[0] & 0xC0) >> 6]
+            tag_is_constructed = bool((data[0] & 0x20) >> 5)
+            if len(data) == 1:
+                tag_number = data[0] & 0x1F
+            elif len(data) == 2:
+                tag_number = data[1] & 0x7F
+            elif len(data) == 3:
+                tag_number = (data[1] & 0x7F) << 7 | (data[2] & 0x7F)
+            return {
+                "tag_class": tag_class, 
+                "tag_is_constructed": tag_is_constructed, 
+                "tag_number": tag_number
+            }
+        except InvalidTagError as e:
+            raise e
+        
     @staticmethod
     def get_length_field_from_bytes(data: bytes) -> bytes:
         """Return length field from the head of data. suppose the length is not longer than 3 bytes.
@@ -186,7 +222,7 @@ class BER_TLV(TLV):
 
     def parse_tag_header(self):
         self.tag_class = (self.tag[0] & 0xC0) >> 6
-        self.tag_constructed = bool((self.tag[0] & 0x20) >> 5)
+        self.tag_is_constructed = bool((self.tag[0] & 0x20) >> 5)
         if len(self.tag) == 1:
             self.tag_number = self.tag[0] & 0x1F
         elif len(self.tag) == 2:
@@ -198,7 +234,7 @@ class BER_TLV(TLV):
             raise InvalidTagError(self.tag, "tag number is greater than 0x3fff")
 
     def parse_constructed_value(self,TLV_type: type):
-        if not self.tag_constructed:
+        if not self.tag_is_constructed:
             raise TLVError("tag is not constructed")
         if not issubclass(TLV_type, TLV):
             raise TLVError("TLV_type is not a subclass of TLV")

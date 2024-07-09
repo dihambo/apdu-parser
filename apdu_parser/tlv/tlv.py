@@ -86,12 +86,16 @@ class TLV(ABC):
 
     @staticmethod
     @abstractmethod
-    def parse_tag_field(data: bytes) -> bytes:
+    def parse_tag_field(data: bytes) -> dict:
         pass
 
     @staticmethod
     @abstractmethod
-    def parse_length_field(data: bytes) -> bytes:
+    def parse_length_field(data: bytes) -> int:
+        pass
+
+    @abstractmethod
+    def parse_value_field(data: bytes) -> dict:
         pass
 
     @staticmethod
