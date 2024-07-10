@@ -13,11 +13,9 @@ class BER_TLV(TLV):
         value_field: bytes | str,
     ) -> None:
         super().__init__(tag_field, length_field, value_field)
-        self.tag_class: int = None
-        self.tag_is_constructed: bool = None
-        self.tag_number: int = None
-        self.value_detail: list|dict = None
-        self.parse_tag_header()
+        self.tag_class: int = self.tag_detail["tag_class"]
+        self.tag_is_constructed: bool = self.tag_detail["tag_is_constructed"]
+        self.tag_number: int = self.tag_detail["tag_number"]
 
     @staticmethod
     def get_tag_field_from_bytes(data: bytes | str) -> bytes:
@@ -219,19 +217,6 @@ class BER_TLV(TLV):
             return length_field[1]
         elif len_len == 3:
             return int.from_bytes(length_field[1:], "big")
-
-    def parse_tag_header(self):
-        self.tag_class = (self.tag[0] & 0xC0) >> 6
-        self.tag_is_constructed = bool((self.tag[0] & 0x20) >> 5)
-        if len(self.tag) == 1:
-            self.tag_number = self.tag[0] & 0x1F
-        elif len(self.tag) == 2:
-            self.tag_number = self.tag[1] & 0x7F
-        elif len(self.tag) == 3:
-            self.tag_number = (self.tag[1] & 0x7F) << 7 | (self.tag[2] & 0x7F)
-
-        if self.tag_number > 0x3FFF:
-            raise InvalidTagError(self.tag, "tag number is greater than 0x3fff")
 
     def parse_constructed_value(self,TLV_type: type):
         if not self.tag_is_constructed:
