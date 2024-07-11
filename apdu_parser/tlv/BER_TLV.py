@@ -5,17 +5,21 @@ from apdu_parser.tlv.tlv_error import (
     InvalidValueError,
     TLVError,
 )
+
+
 class BER_TLV(TLV):
     def __init__(
         self,
         tag_field: bytes | str,
         length_field: bytes | str,
         value_field: bytes | str,
+        nested_tlv_type: type = None,
     ) -> None:
         super().__init__(tag_field, length_field, value_field)
         self.tag_class: int = self.tag_detail["tag_class"]
         self.tag_is_constructed: bool = self.tag_detail["tag_is_constructed"]
         self.tag_number: int = self.tag_detail["tag_number"]
+        self.value_detail = self.parse_value_field(nested_tlv_type)
 
     @staticmethod
     def get_tag_field_from_bytes(data: bytes | str) -> bytes:
@@ -129,13 +133,13 @@ class BER_TLV(TLV):
             elif len(data) == 3:
                 tag_number = (data[1] & 0x7F) << 7 | (data[2] & 0x7F)
             return {
-                "tag_class": tag_class, 
-                "tag_is_constructed": tag_is_constructed, 
-                "tag_number": tag_number
+                "tag_class": tag_class,
+                "tag_is_constructed": tag_is_constructed,
+                "tag_number": tag_number,
             }
         except InvalidTagError as e:
             raise e
-        
+
     @staticmethod
     def get_length_field_from_bytes(data: bytes) -> bytes:
         """Return length field from the head of data. suppose the length is not longer than 3 bytes.
@@ -218,17 +222,17 @@ class BER_TLV(TLV):
         elif len_len == 3:
             return int.from_bytes(length_field[1:], "big")
 
-    def parse_constructed_value(self,TLV_type: type):
-        if not self.tag_is_constructed:
-            raise TLVError("tag is not constructed")
+    def parse_value_field(self, TLV_type: type) -> str | dict:
+        if not self.tag_is_constructed or TLV_type is None:
+            return self.value.hex().upper()
         if not issubclass(TLV_type, TLV):
             raise TLVError("TLV_type is not a subclass of TLV")
         try:
-            tlv_list = TLV_Array.from_bytes(
-                self.value, TLV_type
-            ).get_tlv_list()
-            self.value_detail = tlv_list
-            return tlv_list
+            tlv_list = TLV_Array.from_bytes(self.value, TLV_type).get_tlv_list()
+            return {
+                "tlv_type": TLV_type,
+                "tlv_list": tlv_list,
+            }
         except Exception as e:
             raise e
 

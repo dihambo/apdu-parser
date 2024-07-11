@@ -105,7 +105,7 @@ class TLV(ABC):
         pass
 
     @abstractmethod
-    def parse_value_field(data: bytes) -> dict:
+    def parse_value_field(data: bytes) -> dict|str:
         pass
 
     @staticmethod
