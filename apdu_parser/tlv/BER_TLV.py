@@ -21,6 +21,34 @@ class BER_TLV(TLV):
         self.tag_number: int = self.tag_detail["tag_number"]
         self.value_detail = self.parse_value_field(nested_tlv_type)
 
+    def to_dict(self):
+        tlv_dict = dict()
+        tlv_dict.update(self.tag_detail)
+        tlv_dict.update({"length": self.get_length()})
+        tlv_dict.update({"value": self.value.hex().upper()})
+        if isinstance(self.value_detail, dict):
+            tlv_dict.update({"value_detail": self.value_detail})
+            for tlv in tlv_dict["value_detail"]["tlv_list"]:
+                tlv = tlv.to_dict()
+        return tlv_dict
+    
+    @classmethod
+    def from_bytes(cls, data: bytes | str, TLV_type: type = None):
+        if isinstance(data, str):
+            data = bytes.fromhex(data)
+        try:
+            if len(data)<2:
+                raise TLVError(f"data is too short: {data}")
+            tag_field = cls.get_tag_field_from_bytes(data)
+            tag_len = len(tag_field)
+            length_field = cls.get_length_field_from_bytes(data[tag_len:])
+            length_field_len = len(length_field)
+            length = cls.parse_length_field(length_field)
+            value = data[tag_len + length_field_len:tag_len + length_field_len + length]
+            return cls(tag_field, length_field, value, TLV_type)
+        except Exception as e:
+            raise e
+    
     @staticmethod
     def get_tag_field_from_bytes(data: bytes | str) -> bytes:
         """Return tag field from the head of data. suppose the tag is not longer than 3 bytes.
@@ -211,7 +239,7 @@ class BER_TLV(TLV):
             return res
 
     @staticmethod
-    def parse_length_filed(length_field: bytes) -> int:
+    def parse_length_field(length_field: bytes) -> int:
         if not BER_TLV.check_length_valid(length_field):
             raise InvalidLengthError(length_field, "length field is invalid")
         len_len = len(length_field)
@@ -239,12 +267,12 @@ class BER_TLV(TLV):
     def check_value_valid(self, value: bytes):
         # todo need tlv array be implemented
         try:
-            if self.get_length() != len(value):
+            if self.parse_length_field(self.length) != len(value):
                 raise InvalidValueError(
                     value, "value length is not equal to length field"
                 )
         except InvalidValueError as e:
             raise e
-
+ 
     def get_length(self):
-        return self.parse_length_filed(self.length)
+        return self.parse_length_field(self.length)
